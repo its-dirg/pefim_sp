@@ -852,7 +852,7 @@ def main():
 
     add_urls()
 
-    SRV = wsgiserver.CherryPyWSGIServer((HOST, PORT), application)
+    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', PORT), application)
 
     _https = ""
     if CONFIG.HTTPS:

@@ -47,12 +47,6 @@ hdlr.setFormatter(base_formatter)
 logger.addHandler(hdlr)
 logger.setLevel(logging.INFO)
 
-
-SP = None
-SEED = ""
-POLICY = None
-
-
 def dict_to_table(ava, lev=0, width=1):
     txt = ['<table border=%s bordercolor="black">\n' % width]
     for prop, valarr in ava.items():
@@ -803,6 +797,9 @@ def main():
     global SERVER_KEY
     global CACHE
     global ARGS
+    global SP
+    global SEED
+    global POLICY
 
     from cherrypy import wsgiserver
     from cherrypy.wsgiserver import ssl_pyopenssl

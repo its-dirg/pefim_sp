@@ -58,7 +58,7 @@ CONFIG = {
     "cert_file": "pki/mycert.pem",
     "metadata": {
         "local": [
-            "metadata/pefim_proxy_conf.xml"
+            "/Users/haho0032/Develop/github/pefim-proxy/example/pefim_proxy_conf.xml"
         ],
     },
 

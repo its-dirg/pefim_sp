@@ -36,7 +36,7 @@ from saml2.s_utils import sid
 from saml2.s_utils import rndstr
 #from srtest import exception_trace
 from saml2.samlp import Extensions
-import xmldsig as ds
+import saml2.xmldsig as ds
 
 logger = logging.getLogger("")
 hdlr = logging.FileHandler('spx.log')

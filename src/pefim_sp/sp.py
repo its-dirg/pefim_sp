@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import logging
 import re
 import os
@@ -6,8 +7,19 @@ import argparse
 from saml2.extension.pefim import SPCertEnc
 import importlib
 
-from Cookie import SimpleCookie
-from urlparse import parse_qs
+from six import string_types
+from six import viewkeys
+from six import PY3
+
+if PY3:
+    # python 3
+    from http.cookies import SimpleCookie
+    from urllib.parse import parse_qs
+else:
+    # python 2
+    from Cookie import SimpleCookie
+    from urlparse import parse_qs
+
 import sys
 
 from saml2 import BINDING_HTTP_REDIRECT, element_to_extension_element
@@ -36,7 +48,10 @@ from saml2.s_utils import sid
 from saml2.s_utils import rndstr
 #from srtest import exception_trace
 from saml2.samlp import Extensions
-import saml2.xmldsig as ds
+
+from saml2 import xmldsig as ds
+
+from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
 
 logger = logging.getLogger("")
 hdlr = logging.FileHandler('spx.log')
@@ -51,7 +66,7 @@ def dict_to_table(ava, lev=0, width=1):
     txt = ['<table border=%s bordercolor="black">\n' % width]
     for prop, valarr in ava.items():
         txt.append("<tr>\n")
-        if isinstance(valarr, basestring):
+        if isinstance(valarr, string_types):
             txt.append("<th>%s</th>\n" % str(prop))
             try:
                 txt.append("<td>%s</td>\n" % valarr.encode("utf8"))
@@ -347,18 +362,18 @@ class ACS(Service):
         try:
             self.response = self.sp.parse_authn_request_response(
                 response, binding, self.outstanding_queries, self.cache.outstanding_certs)
-        except UnknownPrincipal, excp:
+        except UnknownPrincipal as excp:
             logger.error("UnknownPrincipal: %s" % (excp,))
             resp = ServiceError("UnknownPrincipal: %s" % (excp,))
             return resp(self.environ, self.start_response)
-        except UnsupportedBinding, excp:
+        except UnsupportedBinding as excp:
             logger.error("UnsupportedBinding: %s" % (excp,))
             resp = ServiceError("UnsupportedBinding: %s" % (excp,))
             return resp(self.environ, self.start_response)
-        except VerificationError, err:
+        except VerificationError as err:
             resp = ServiceError("Verification error: %s" % (err,))
             return resp(self.environ, self.start_response)
-        except Exception, err:
+        except Exception as err:
             resp = ServiceError("Other error: %s" % (err,))
             return resp(self.environ, self.start_response)
 
@@ -526,7 +541,7 @@ class SSO(object):
                     return -1, SeeOther(loc)
             elif len(idps) == 1:
                 # idps is a dictionary
-                idp_entity_id = idps.keys()[0]
+                idp_entity_id = list(viewkeys(idps))[0]
             elif not len(idps):
                 return -1, ServiceError('Misconfiguration')
             else:
@@ -574,7 +589,7 @@ class SSO(object):
             if cert is not None:
                 self.cache.outstanding_certs[_sid] = cert
 
-        except Exception, exc:
+        except Exception as exc:
             logger.exception(exc)
             resp = ServiceError(
                 "Failed to construct the AuthnRequest: %s" % exc)
@@ -777,14 +792,14 @@ def application(environ, start_response):
         if re.match(".*static/.*", path):
             return handle_static(environ, start_response, path)
         return not_found(environ, start_response)
-    except StatusError, err:
+    except StatusError as err:
         logging.error("StatusError: %s" % err)
         resp = BadRequest("%s" % err)
         return resp(environ, start_response)
-    except Exception, err:
+    except Exception as err:
         #_err = exception_trace("RUN", err)
         #logging.error(exception_trace("RUN", _err))
-        print >> sys.stderr, err
+        print(err, file=sys.stderr)
         resp = ServiceError("%s" % err)
         return resp(environ, start_response)
 
@@ -802,7 +817,8 @@ def main():
     global POLICY
 
     from cherrypy import wsgiserver
-    from cherrypy.wsgiserver import ssl_pyopenssl
+    #from cherrypy.wsgiserver import ssl_pyopenssl # TODO
+
     sys.path.insert(0, os.getcwd())
 
     _parser = argparse.ArgumentParser()
@@ -853,11 +869,14 @@ def main():
 
     _https = ""
     if CONFIG.HTTPS:
-        SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(SERVER_CERT,
-                                                         SERVER_KEY, CERT_CHAIN)
+        # TODO How to get pyOpenSSLAdapter in python3?
+        # SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(SERVER_CERT,
+        #                                                  SERVER_KEY, CERT_CHAIN)
+        SRV.ssl_adapter = wsgiserver.ssl_builtin.BuiltinSSLAdapter(SERVER_CERT, SERVER_KEY, CERT_CHAIN)
+
         _https = " using SSL/TLS"
     logger.info("Server starting")
-    print "SP listening on %s:%s%s" % (HOST, PORT, _https)
+    print("SP listening on %s:%s%s" % (HOST, PORT, _https))
     try:
         SRV.start()
     except KeyboardInterrupt:

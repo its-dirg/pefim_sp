@@ -9,14 +9,11 @@ import importlib
 
 from six import string_types
 from six import viewkeys
-from six import PY3
 
-if PY3:
-    # python 3
+try:
     from http.cookies import SimpleCookie
     from urllib.parse import parse_qs
-else:
-    # python 2
+except ImportError:
     from Cookie import SimpleCookie
     from urlparse import parse_qs
 
